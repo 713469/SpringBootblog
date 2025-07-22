@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>我的博客</title>
+  <style>
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background-color: #3c8dbc;
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .user-status {
+      cursor: pointer;
+      font-size: 15px;
+      padding: 6px 14px;
+      background-color: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      transition: background 0.3s ease;
+    }
+
+    .user-status:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    button {
+      padding: 8px 16px;
+      font-size: 15px;
+      background-color: #3c8dbc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 12px;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #2b78a2;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 900px;
+      margin: 30px auto;
+      background: white;
+      padding: 36px 40px;
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+    }
+
+    .article {
+      border-bottom: 1px solid #eee;
+      padding: 24px 0;
+    }
+
+    .article:last-child {
+      border-bottom: none;
+    }
+
+    .article h2 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      color: #2c3e50;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .article h2:hover {
+      color: #3c8dbc;
+    }
+
+    .article .meta {
+      font-size: 14px;
+      color: #777;
+      margin-bottom: 10px;
+    }
+
+    .article .summary {
+      font-size: 16px;
+      color: #444;
+      line-height: 1.6;
+    }
+
+    .article button {
+      margin-top: 10px;
+    }
+
+    /* 移动端优化 */
+    @media (max-width: 600px) {
+      header {
+        padding: 16px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      header h1 {
+        font-size: 22px;
+      }
+
+      .article h2 {
+        font-size: 18px;
+      }
+
+      .article .summary {
+        font-size: 15px;
+      }
+
+      button {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 10px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>我的博客</h1>
+  <div class="user-status" id="userStatus">未登录</div>
+</header>
+
+<div class="container" id="articleList">
+  正在加载文章...
+</div>
+
+<script>
+  const nickname = sessionStorage.getItem("nickname");
+  const email = sessionStorage.getItem("loginUser");
+
+  // 设置右上角昵称或登录提示
+  if (nickname) {
+    document.getElementById("userStatus").innerText = nickname;
+
+    // 添加“发布文章”按钮（仅管理员）
+    if (email === "2131644875@qq.com") {
+      const publishBtn = document.createElement("button");
+      publishBtn.innerText = "发布文章";
+      publishBtn.style.marginLeft = "20px";
+      publishBtn.onclick = () => window.location.href = "new-article.html";
+      document.getElementById("userStatus").after(publishBtn);
+    }
+
+  } else {
+    document.getElementById("userStatus").innerText = "未登录";
+    document.getElementById("userStatus").onclick = function () {
+      window.location.href = "login.html";
+    };
+  }
+
+  // 加载文章列表
+  fetch("/articles/list")
+          .then(res => res.json())
+          .then(data => {
+            const container = document.getElementById("articleList");
+            container.innerHTML = "";
+
+            data.forEach(article => {
+              const title = document.createElement("h2");
+              title.innerText = article.title;
+              title.onclick = () => {
+                window.location.href = `article.html?id=${article.id}`;
+              };
+
+              const meta = document.createElement("div");
+              const author = nickname ? article.authorNickname : "（作者已隐藏）";
+              meta.className = "meta";
+              meta.innerText = `发布于 ${article.createdAt} | 作者：${author}`;
+
+              const summary = document.createElement("div");
+              summary.className = "summary";
+              summary.innerText = article.content.replace(/<[^>]+>/g, "").slice(0, 100) + "...";
+
+              const div = document.createElement("div");
+              div.className = "article";
+              div.appendChild(title);
+              div.appendChild(meta);
+              div.appendChild(summary);
+
+              // 仅管理员显示“编辑文章”按钮
+              if (email === "2131644875@qq.com") {
+                const editBtn = document.createElement("button");
+                editBtn.innerText = "编辑";
+                editBtn.style.marginTop = "8px";
+                editBtn.onclick = () => window.location.href = `edit-article.html?id=${article.id}`;
+                div.appendChild(editBtn);
+              }
+
+              container.appendChild(div);
+            });
+          });
+</script>
+
+
+</body>
+</html>

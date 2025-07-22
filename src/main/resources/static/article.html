@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>文章详情</title>
+    <style>
+        body {
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        header {
+            background-color: #3c8dbc;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .user-status {
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        .user-status:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            padding: 36px 40px;
+            border-radius: 10px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+        }
+
+        .article-title {
+            font-size: 30px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #222;
+        }
+
+        .article-meta {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 28px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .article-content {
+            font-size: 17px;
+            line-height: 1.8;
+            color: #444;
+            white-space: pre-wrap;
+        }
+
+        .comments {
+            margin-top: 50px;
+        }
+
+        .comments h3 {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .comment {
+            border-top: 1px solid #eee;
+            padding: 16px 0;
+        }
+
+        .comment-meta {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            font-size: 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+        }
+
+        textarea:focus {
+            border-color: #3c8dbc;
+            outline: none;
+        }
+
+        button {
+            margin-top: 12px;
+            padding: 10px 20px;
+            background-color: #3c8dbc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2b78a2;
+        }
+
+        .login-tip {
+            color: #d9534f;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .login-tip a {
+            color: #d9534f;
+            text-decoration: underline;
+        }
+
+        /* 响应式适配优化 */
+        @media (max-width: 600px) {
+            header, .container {
+                padding: 16px;
+            }
+
+            .article-title {
+                font-size: 24px;
+            }
+
+            .comments h3 {
+                font-size: 18px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h2>文章详情</h2>
+    <div class="user-status" id="userStatus">未登录</div>
+</header>
+
+<div class="container">
+    <div class="article-title" id="title">加载中...</div>
+    <div class="article-meta" id="meta"></div>
+    <div class="article-content" id="content"></div>
+
+    <div class="comments" id="commentSection">
+        <h3>评论区</h3>
+        <div id="commentList">加载中...</div>
+
+        <div id="commentForm" style="margin-top: 20px;">
+            <textarea id="commentText" placeholder="说点什么..."></textarea>
+            <button onclick="submitComment()">发表评论</button>
+        </div>
+
+        <div id="loginTip" class="login-tip" style="display: none;">
+            请先 <a href="login.html">登录</a> 后发表评论。
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const articleId = urlParams.get("id");
+    const nickname = sessionStorage.getItem("nickname");
+    const email = sessionStorage.getItem("loginUser");
+
+    if (nickname) {
+        document.getElementById("userStatus").innerText = nickname;
+    } else {
+        document.getElementById("userStatus").innerText = "未登录";
+        document.getElementById("userStatus").onclick = () => location.href = "login.html";
+        document.getElementById("commentForm").style.display = "none";
+        document.getElementById("loginTip").style.display = "block";
+    }
+
+    // 加载文章详情
+    fetch(`/articles/${articleId}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("title").innerText = data.title;
+            document.getElementById("meta").innerText = `作者：${data.authorNickname} | 发布时间：${data.createdAt}`;
+            document.getElementById("content").innerHTML = data.content;
+        });
+
+    // 加载评论
+    function loadComments() {
+        fetch(`/comments/${articleId}`)
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById("commentList");
+                list.innerHTML = "";
+
+                if (data.length === 0) {
+                    list.innerText = "暂无评论";
+                    return;
+                }
+
+                data.forEach(c => {
+                    const div = document.createElement("div");
+                    div.className = "comment";
+
+                    const meta = document.createElement("div");
+                    meta.className = "comment-meta";
+                    meta.innerText = `${c.userNickname} 于 ${c.createdAt} 评论`;
+
+                    const content = document.createElement("div");
+                    content.innerText = c.content;
+
+                    div.appendChild(meta);
+                    div.appendChild(content);
+                    list.appendChild(div);
+                });
+            });
+    }
+
+    loadComments();
+
+    // 提交评论
+    function submitComment() {
+        const text = document.getElementById("commentText").value.trim();
+        if (!text) return alert("评论内容不能为空");
+
+        const params = new URLSearchParams({ articleId, content: text });
+
+        fetch("/comments/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: params
+        }).then(res => res.text())
+            .then(msg => {
+                if (msg === "评论成功") {
+                    document.getElementById("commentText").value = "";
+                    loadComments();
+                } else {
+                    alert("评论失败：" + msg);
+                }
+            });
+    }
+</script>
+
+</body>
+</html>

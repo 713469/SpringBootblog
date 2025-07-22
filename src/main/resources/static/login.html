@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>登录 / 注册</title>
+  <style>
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(to right, #74ebd5, #ACB6E5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 40px 32px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 24px;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease;
+    }
+
+    input:focus {
+      border-color: #3c8dbc;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      background: #3c8dbc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #2b78a2;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 24px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tab {
+      cursor: pointer;
+      font-weight: bold;
+      padding-bottom: 8px;
+      color: #666;
+      transition: color 0.3s ease, border-bottom 0.3s ease;
+    }
+
+    .tab.active {
+      color: #3c8dbc;
+      border-bottom: 2px solid #3c8dbc;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 14px;
+      color: #4caf50;
+    }
+
+    .form {
+      display: none;
+    }
+
+    .form.active {
+      display: block;
+    }
+
+    /* 响应式支持 */
+    @media (max-width: 480px) {
+      .container {
+        padding: 24px 20px;
+        width: 90%;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      button {
+        font-size: 14px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('login')">登录</div>
+    <div class="tab" onclick="switchTab('register')">注册</div>
+  </div>
+
+  <div id="loginForm" class="form active">
+    <input type="email" id="loginEmail" placeholder="邮箱">
+    <input type="password" id="loginPassword" placeholder="密码">
+    <button onclick="login()">登录</button>
+  </div>
+
+  <div id="registerForm" class="form">
+    <input type="text" id="nickname" placeholder="昵称">
+    <input type="password" id="regPassword" placeholder="密码">
+    <input type="email" id="regEmail" placeholder="邮箱">
+    <input type="text" id="regCode" placeholder="验证码">
+    <button onclick="sendCode()">发送验证码</button>
+    <button onclick="register()">注册</button>
+  </div>
+
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
+
+    if (tab === 'login') {
+      document.querySelector('.tab:nth-child(1)').classList.add('active');
+      document.getElementById('loginForm').classList.add('active');
+    } else {
+      document.querySelector('.tab:nth-child(2)').classList.add('active');
+      document.getElementById('registerForm').classList.add('active');
+    }
+  }
+
+  function sendCode() {
+    const email = document.getElementById("regEmail").value;
+    if (!email) return alert("请填写邮箱");
+
+    fetch(`/auth/send-code?email=${encodeURIComponent(email)}`, {
+      method: "POST"
+    }).then(res => res.text())
+            .then(msg => document.getElementById("status").innerText = "验证码已发送")
+            .catch(() => alert("发送失败"));
+  }
+
+  function login() {
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+    if (!email || !password) return alert("请填写邮箱和密码");
+
+    const params = new URLSearchParams({ email, password });
+
+    fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params
+    }).then(res => res.json())
+            .then(data => {
+              if (data.msg === "登录成功") {
+                sessionStorage.setItem("loginUser", data.email);
+                sessionStorage.setItem("nickname", data.nickname); // 保存昵称
+                window.location.href = "index.html";
+              } else {
+                document.getElementById("status").innerText = data.msg;
+              }
+            });
+  }
+
+  function register() {
+    const nickname = document.getElementById("nickname").value;
+    const password = document.getElementById("regPassword").value;
+    const email = document.getElementById("regEmail").value;
+    const code = document.getElementById("regCode").value;
+    if (!nickname || !password || !email || !code) return alert("请填写所有注册信息");
+
+    const params = new URLSearchParams({ nickname, password, email, code });
+
+    fetch("/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params
+    }).then(res => res.text())
+            .then(data => {
+              if (data === "注册成功") {
+                sessionStorage.setItem("loginUser", email);
+                window.location.href = "index.html";
+              } else {
+                document.getElementById("status").innerText = data;
+              }
+            });
+  }
+</script>
+</body>
+</html>
